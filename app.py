@@ -15,6 +15,13 @@ def is_broken_url(url: Union[str, Any]) -> bool:
         )
     raise TypeError(f'Expected {url} to be of type str')
 
+def has_replied_to_broken_url_comment(replies):
+    for comment1 in replies:
+        print(comment1.author)
+        if comment1.author == os.environ['USERNAME']:
+            return True
+    return False
+
 load_dotenv()
 
 reddit = praw.Reddit(
@@ -37,3 +44,7 @@ for comment in subreddit.stream.comments(skip_existing = False):
 
     if broken_urls:
         print(broken_urls)
+        print(comment.replies)
+        comment.refresh()
+        print(comment.replies.list())
+        print(has_replied_to_broken_url_comment(comment.replies))
