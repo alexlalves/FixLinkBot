@@ -1,5 +1,6 @@
 import os
 import re
+import threading
 
 from string import Template
 from typing import Any, List, Union
@@ -46,20 +47,18 @@ def message(urls: List[str]):
         'fixed_links': "\n\n".join(urls)
     })
 
-def main():
-    load_dotenv()
-
-    reddit = praw.Reddit(
-        client_id = os.environ['CLIENT_ID'],
-        client_secret = os.environ['CLIENT_SECRET'],
-        password = os.environ['PASSWORD'],
-        user_agent = os.environ['USER_AGENT'],
-        username = os.environ['USERNAME'],
+def reply_to_comment(comment, broken_urls: List[str]):
+    comment.reply(
+        message(
+            fix_broken_urls(broken_urls)
+        )
     )
 
+def comment_listener(reddit: praw.Reddit):
+    extractor = URLExtract()
+
     subreddit = reddit.subreddit('test')
-    for comment in subreddit.stream.comments(skip_existing = False):
-        extractor = URLExtract()
+    for comment in subreddit.stream.comments(skip_existing = True):
         urls = extractor.find_urls(
             text = comment.body,
             only_unique = True,
@@ -73,9 +72,66 @@ def main():
         if broken_urls:
             comment.refresh()
             if not has_replied_to_broken_url_comment(comment.replies):
-                new_urls = fix_broken_urls(broken_urls)
-                reply_message = message(new_urls)
-                comment.reply(reply_message)
+                reply_to_comment(comment, broken_urls)
+
+def mention_listener(reddit: praw.Reddit):
+    extractor = URLExtract()
+
+    for mention in reddit.inbox.stream():
+        parent_comment = mention.parent()
+        parent_comment.refresh()
+
+        urls = extractor.find_urls(
+            text = parent_comment.body,
+            only_unique = True,
+        )
+
+        print(urls)
+
+        broken_urls = [
+            url for url in urls
+            if is_broken_url(url) and isinstance(url, str)
+        ]
+
+        print(broken_urls)
+
+        if broken_urls:
+            print(has_replied_to_broken_url_comment(parent_comment.replies))
+            if not has_replied_to_broken_url_comment(parent_comment.replies):
+                reply_to_comment(mention, broken_urls)
+
+        reddit.inbox.mark_read([mention])
+
+def main():
+    import logging
+
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    for logger_name in ("praw", "prawcore"):
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(handler)
+
+    load_dotenv()
+
+    reddit = praw.Reddit(
+        client_id = os.environ['CLIENT_ID'],
+        client_secret = os.environ['CLIENT_SECRET'],
+        password = os.environ['PASSWORD'],
+        user_agent = os.environ['USER_AGENT'],
+        username = os.environ['USERNAME'],
+    )
+
+    threading.Thread(
+        target = comment_listener,
+        args = (reddit,)
+    ).start()
+
+    threading.Thread(
+        target=mention_listener,
+        args=(reddit,)
+    ).start()
+
 
 if __name__ == '__main__':
     main()
