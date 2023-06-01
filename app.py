@@ -23,8 +23,9 @@ If you have any issues with me, please contact u/Magmagan.
 def is_broken_url(url: Union[str, Any]) -> bool:
     if isinstance(url, str):
         return (
-            url.find('\\_') != -1 \
+            url.find('\\_') != -1
             or url.find('%5C') != -1
+            or url.find('))') != -1
         )
     raise TypeError(f'Expected {url} to be of type str')
 
