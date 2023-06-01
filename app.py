@@ -35,11 +35,10 @@ def fix_broken_urls(urls: List[str]) -> List[str]:
     ]
 
 def has_replied_to_broken_url_comment(replies):
-    for comment in replies:
-        print(comment.author)
-        if comment.author == os.environ['USERNAME']:
-            return True
-    return False
+    return any(
+        comment.author == os.environ['USERNAME']
+        for comment in replies
+    )
 
 def message(urls: List[str]):
     print(MESSAGE_TEMPLATE.substitute({
