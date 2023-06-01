@@ -9,6 +9,17 @@ import praw
 from dotenv import load_dotenv
 from urlextract import URLExtract
 
+MESSAGE_TEMPLATE = Template(
+"""Hi, I noticed that some of your links might be broken for some reddit users.
+Here is my best attempt at fixing them:
+
+$fixed_links
+
+I am a bot, beep boop.
+If you have any issues with me, please contact u/Magmagan.
+"""
+)
+
 def is_broken_url(url: Union[str, Any]) -> bool:
     if isinstance(url, str):
         return (
@@ -30,6 +41,11 @@ def has_replied_to_broken_url_comment(replies):
             return True
     return False
 
+def message(urls: List[str]):
+    print(MESSAGE_TEMPLATE.substitute({
+        'fixed_links': "\n\n".join(urls)
+    }))
+
 def main():
     load_dotenv()
 
@@ -49,14 +65,16 @@ def main():
             only_unique = True,
         )
 
-        broken_urls = [url for url in urls if is_broken_url(url)]
+        broken_urls = [
+            url for url in urls
+            if is_broken_url(url) and isinstance(url, str)
+        ]
 
         if broken_urls:
-            print(broken_urls)
-            print(comment.replies)
             comment.refresh()
-            print(comment.replies.list())
-            print(has_replied_to_broken_url_comment(comment.replies))
+            if not has_replied_to_broken_url_comment(comment.replies):
+                new_urls = fix_broken_urls(broken_urls)
+                message(new_urls)
 
 if __name__ == '__main__':
     main()
