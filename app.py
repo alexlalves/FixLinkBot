@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import threading
@@ -20,6 +21,14 @@ I am a bot, beep boop.
 If you have any issues with me, please contact u/Magmagan.
 """
 )
+
+def add_logging():
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    for logger_name in ("praw", "prawcore"):
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(handler)
 
 def is_broken_url(url: Union[str, Any]) -> bool:
     if isinstance(url, str):
@@ -103,16 +112,10 @@ def mention_listener(reddit: praw.Reddit):
         reddit.inbox.mark_read([mention])
 
 def main():
-    import logging
-
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    for logger_name in ("praw", "prawcore"):
-        logger = logging.getLogger(logger_name)
-        logger.setLevel(logging.DEBUG)
-        logger.addHandler(handler)
-
     load_dotenv()
+
+    if os.environ['LOGGING'] == 'True':
+        add_logging()
 
     reddit = praw.Reddit(
         client_id = os.environ['CLIENT_ID'],
