@@ -41,9 +41,9 @@ def has_replied_to_broken_url_comment(replies):
     )
 
 def message(urls: List[str]):
-    print(MESSAGE_TEMPLATE.substitute({
+    return MESSAGE_TEMPLATE.substitute({
         'fixed_links': "\n\n".join(urls)
-    }))
+    })
 
 def main():
     load_dotenv()
@@ -73,7 +73,8 @@ def main():
             comment.refresh()
             if not has_replied_to_broken_url_comment(comment.replies):
                 new_urls = fix_broken_urls(broken_urls)
-                message(new_urls)
+                reply_message = message(new_urls)
+                comment.reply(reply_message)
 
 if __name__ == '__main__':
     main()
