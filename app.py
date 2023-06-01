@@ -71,20 +71,22 @@ def comment_listener(reddit: praw.Reddit):
 
     subreddit = reddit.subreddit('test')
     for comment in subreddit.stream.comments(skip_existing = True):
-        urls = extractor.find_urls(
-            text = comment.body,
-            only_unique = True,
-        )
+        filtered_body = filter_link_text_urls(comment.body)
 
-        broken_urls = [
-            url for url in urls
-            if is_broken_url(url) and isinstance(url, str)
+        urls = [
+            url for url in
+                extractor.find_urls(
+                    text = filtered_body,
+                    only_unique = True,
+                )
+            if isinstance(url, str)
+                and is_broken_url(url)
         ]
 
-        if broken_urls:
+        if urls:
             comment.refresh()
             if not has_replied_to_broken_url_comment(comment.replies):
-                reply_to_comment(comment, broken_urls)
+                reply_to_comment(comment, urls)
 
 def mention_listener(reddit: praw.Reddit):
     extractor = URLExtract()
@@ -93,24 +95,20 @@ def mention_listener(reddit: praw.Reddit):
         parent_comment = mention.parent()
         parent_comment.refresh()
 
-        urls = extractor.find_urls(
-            text = parent_comment.body,
-            only_unique = True,
-        )
+        filtered_body = filter_link_text_urls(parent_comment.body)
 
-        print(urls)
-
-        broken_urls = [
-            url for url in urls
-            if is_broken_url(url) and isinstance(url, str)
+        urls = [
+            url for url in
+                extractor.find_urls(
+                    text = filtered_body,
+                    only_unique = True,
+                )
+            if isinstance(url, str)
+                and is_broken_url(url)
         ]
 
-        print(broken_urls)
-
-        if broken_urls:
-            print(has_replied_to_broken_url_comment(parent_comment.replies))
-            if not has_replied_to_broken_url_comment(parent_comment.replies):
-                reply_to_comment(mention, broken_urls)
+        if urls and not has_replied_to_broken_url_comment(parent_comment.replies):
+            reply_to_comment(mention, urls)
 
         reddit.inbox.mark_read([mention])
 
