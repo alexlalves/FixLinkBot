@@ -1,6 +1,8 @@
 import os
+import re
 
-from typing import Any, Union
+from string import Template
+from typing import Any, List, Union
 
 import praw
 
@@ -14,6 +16,12 @@ def is_broken_url(url: Union[str, Any]) -> bool:
             or url.find('%5C') != -1
         )
     raise TypeError(f'Expected {url} to be of type str')
+
+def fix_broken_urls(urls: List[str]) -> List[str]:
+    return [
+        re.sub(r'(\\_)|(%5[cC]_)', '_', url)
+        for url in urls
+    ]
 
 def has_replied_to_broken_url_comment(replies):
     for comment in replies:
