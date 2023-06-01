@@ -30,6 +30,9 @@ def add_logging():
         logger.setLevel(logging.DEBUG)
         logger.addHandler(handler)
 
+def filter_link_text_urls(comment_body: str):
+    return re.sub(r'\[(.*?)\]\((.*?)\)', r'\g<2>', comment_body)
+
 def is_broken_url(url: Union[str, Any]) -> bool:
     if isinstance(url, str):
         return (
@@ -134,7 +137,6 @@ def main():
         target=mention_listener,
         args=(reddit,)
     ).start()
-
 
 if __name__ == '__main__':
     main()
