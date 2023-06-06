@@ -1,0 +1,7 @@
+.git
+.gitignore
+.vscode
+Pipfile
+Pipfile.lock
+.pylintrc
+deploy.sh
