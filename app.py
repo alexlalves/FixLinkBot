@@ -114,7 +114,7 @@ def mention_listener(reddit: praw.Reddit):
         ]
 
         if urls and not has_replied_to_broken_url_comment(parent_comment.replies):
-            reply_to_comment(mention, urls)
+            reply_to_comment(parent_comment, urls)
 
         reddit.inbox.mark_read([mention])
 
