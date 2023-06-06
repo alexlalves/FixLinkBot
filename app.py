@@ -60,17 +60,17 @@ def has_replied_to_broken_url_comment(replies):
         for comment in replies
     )
 
-def message(urls: List[str]):
+def generate_message(urls: List[str]):
     return MESSAGE_TEMPLATE.substitute({
         'fixed_links': "\n\n".join(urls)
     })
 
 def reply_to_comment(comment, broken_urls: List[str]):
-    comment.reply(
-        message(
-            fix_broken_urls(broken_urls)
-        )
-    )
+    fixed_urls = fix_broken_urls(broken_urls)
+    message = generate_message(fixed_urls)
+
+    print(comment, broken_urls)
+    comment.reply(message)
 
 def comment_listener(reddit: praw.Reddit):
     extractor = URLExtract()
