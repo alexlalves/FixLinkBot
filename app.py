@@ -3,6 +3,7 @@ import os
 import re
 import threading
 
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from string import Template
 from typing import Any, List, Union
 
@@ -22,7 +23,12 @@ If you have any issues with me, please contact u/Magmagan.
 """
 )
 
-def add_logging():
+class HealthcheckServer(BaseHTTPRequestHandler):
+    def do_GET(self):
+        print('Healthcheck OK')
+        self.send_response(200)
+
+def add_praw_logging():
     handler = logging.StreamHandler()
     handler.setLevel(logging.DEBUG)
     for logger_name in ("praw", "prawcore"):
@@ -115,8 +121,8 @@ def mention_listener(reddit: praw.Reddit):
 def main():
     load_dotenv()
 
-    if os.environ['LOGGING'] == 'True':
-        add_logging()
+    if os.environ['LOGGING'] == 'TRUE':
+        add_praw_logging()
 
     reddit = praw.Reddit(
         client_id = os.environ['CLIENT_ID'],
@@ -135,6 +141,11 @@ def main():
         target=mention_listener,
         args=(reddit,)
     ).start()
+
+    HTTPServer(
+        ('', int(os.environ['SERVER_PORT'])),
+        HealthcheckServer,
+    ).serve_forever() # type: ignore
 
 if __name__ == '__main__':
     main()
