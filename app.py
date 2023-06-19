@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import re
@@ -11,6 +12,11 @@ import praw
 
 from dotenv import load_dotenv
 from urlextract import URLExtract
+
+PRAW_EXCEPTIONS = (
+    praw.reddit.ClientException,
+    praw.reddit.RedditAPIException,
+)
 
 MESSAGE_TEMPLATE = Template(
 """
@@ -66,12 +72,27 @@ def generate_message(urls: List[str]):
         'fixed_links': "\n\n".join(urls)
     })
 
+async def retry_reply_to_comment(comment, message: str):
+    await asyncio.sleep(600)
+    try:
+        comment.reply(message)
+    finally:
+        pass
+
 def reply_to_comment(comment, broken_urls: List[str]):
     fixed_urls = fix_broken_urls(broken_urls)
     message = generate_message(fixed_urls)
 
     print(comment, broken_urls)
-    comment.reply(message)
+    try:
+        comment.reply(message)
+    except PRAW_EXCEPTIONS:
+        threading.Thread(
+            target=retry_reply_to_comment,
+            args=(comment, message)
+        ).start()
+    finally:
+        pass
 
 def comment_listener(reddit: praw.Reddit):
     extractor = URLExtract()
@@ -91,7 +112,10 @@ def comment_listener(reddit: praw.Reddit):
         ]
 
         if urls:
-            comment.refresh()
+            try:
+                comment.refresh()
+            except PRAW_EXCEPTIONS:
+                continue
             if not has_replied_to_broken_url_comment(comment.replies):
                 reply_to_comment(comment, urls)
 
@@ -100,7 +124,10 @@ def mention_listener(reddit: praw.Reddit):
 
     for mention in reddit.inbox.stream():
         parent_comment = mention.parent()
-        parent_comment.refresh()
+        try:
+            parent_comment.refresh()
+        except PRAW_EXCEPTIONS:
+            continue
 
         filtered_body = filter_link_text_urls(parent_comment.body)
 
