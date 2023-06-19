@@ -13,13 +13,14 @@ from dotenv import load_dotenv
 from urlextract import URLExtract
 
 MESSAGE_TEMPLATE = Template(
-"""Hi, I noticed that some of your links might be broken for some reddit users.
+"""
+Hi, I noticed that some of your links might be broken for old reddit users.
 Here is my best attempt at fixing them:
 
 $fixed_links
 
 I am a bot, beep boop.
-If you have any issues with me, please contact u/Magmagan.
+For more information on how I work, please visit my profile.
 """
 )
 
