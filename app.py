@@ -79,7 +79,7 @@ async def retry_reply_to_comment(comment, message: str):
     finally:
         pass
 
-def reply_to_comment(comment, broken_urls: List[str]):
+def true_reply_to_comment(comment, broken_urls: List[str]):
     fixed_urls = fix_broken_urls(broken_urls)
     message = generate_message(fixed_urls)
 
@@ -93,6 +93,15 @@ def reply_to_comment(comment, broken_urls: List[str]):
         ).start()
     finally:
         pass
+
+def mock_reply_to_comment(comment, broken_urls: List[str]):
+    print(comment.subreddit.display_name, comment.permalink, broken_urls)
+
+def reply_to_comment(comment, broken_urls: List[str]):
+    if os.environ['REPLY_MODE'] == 'REPLY':
+        true_reply_to_comment(comment, broken_urls)
+    else:
+        mock_reply_to_comment(comment, broken_urls)
 
 def comment_listener(reddit: praw.Reddit):
     extractor = URLExtract()
