@@ -106,7 +106,7 @@ def reply_to_comment(comment, broken_urls: List[str]):
 def comment_listener(reddit: praw.Reddit):
     extractor = URLExtract()
 
-    subreddit = reddit.subreddit('test')
+    subreddit = reddit.subreddit('all')
     for comment in subreddit.stream.comments(skip_existing = True):
         filtered_body = filter_link_text_urls(comment.body)
 
