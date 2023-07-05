@@ -30,6 +30,16 @@ For more information on how I work, please visit my profile.
 """
 )
 
+PROBLEM_CHARACTERS = [
+    '_',
+    '*',
+    '~',
+
+    # Questionable?
+    # '%5C',
+    # '))',
+]
+
 class HealthcheckServer(BaseHTTPRequestHandler):
     def do_GET(self):
         print('Healthcheck OK')
@@ -48,10 +58,11 @@ def filter_link_text_urls(comment_body: str):
 
 def is_broken_url(url: Union[str, Any]) -> bool:
     if isinstance(url, str):
-        return (
-            url.find('\\_') != -1
-            or url.find('%5C') != -1
-            or url.find('))') != -1
+        return any(
+            (
+                url.find(f'\\{char}') != -1
+                for char in PROBLEM_CHARACTERS
+            )
         )
     raise TypeError(f'Expected {url} to be of type str')
 
@@ -157,6 +168,8 @@ def mention_listener(reddit: praw.Reddit):
 
 def main():
     load_dotenv()
+
+    print(f'Starting {os.environ["USERNAME"]}')
 
     if os.environ['LOGGING'] == 'TRUE':
         add_praw_logging()
