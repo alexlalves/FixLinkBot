@@ -4,6 +4,7 @@ import os
 import re
 import threading
 
+from functools import reduce
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from string import Template
 from typing import Any, List, Union
@@ -67,12 +68,11 @@ def is_broken_url(url: Union[str, Any]) -> bool:
     raise TypeError(f'Expected {url} to be of type str')
 
 def fix_broken_url(url: str) -> str:
-    new_url = url
-
-    for char in PROBLEM_CHARACTERS:
-        new_url = new_url.replace(f'\\{char}', char)
-
-    return new_url
+    return reduce(
+        lambda new_url, char: new_url.replace(f'\\{char}', char),
+        PROBLEM_CHARACTERS,
+        url
+    )
 
 def fix_broken_urls(urls: List[str]) -> List[str]:
     return [
