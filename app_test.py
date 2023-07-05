@@ -59,5 +59,41 @@ class AppTestCase(unittest.TestCase):
         for test_case in filter_link_test_cases:
             assert app.filter_link_text_urls(test_case[0]) == test_case[1]
 
+    def test_fix_broken_url(self):
+        broken_url_test_cases: List[Tuple[str, str]] = [
+            # _
+            (
+                'https://en.wikipedia.org/wiki/Snake\\_case',
+                'https://en.wikipedia.org/wiki/Snake_case',
+            ),
+            (
+                'https://en.wikipedia.org/wiki/Snake_case',
+                'https://en.wikipedia.org/wiki/Snake_case',
+            ),
+
+            # *
+            (
+                'https://en.wikipedia.org/wiki/\\*_(disambiguation)',
+                'https://en.wikipedia.org/wiki/*_(disambiguation)'
+            ),
+            (
+                'https://en.wikipedia.org/wiki/*_(disambiguation)',
+                'https://en.wikipedia.org/wiki/*_(disambiguation)',
+            ),
+
+            # ~
+            (
+                'https://en.wikipedia.org/wiki/\\~_(album)',
+                'https://en.wikipedia.org/wiki/~_(album)',
+            ),
+            (
+                'https://en.wikipedia.org/wiki/~_(album)',
+                'https://en.wikipedia.org/wiki/~_(album)',
+            ),
+        ]
+
+        for test_case in broken_url_test_cases:
+            assert app.fix_broken_url(test_case[0]) == test_case[1]
+
 if __name__ == '__main__':
     unittest.main()

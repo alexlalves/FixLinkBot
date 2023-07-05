@@ -66,9 +66,17 @@ def is_broken_url(url: Union[str, Any]) -> bool:
         )
     raise TypeError(f'Expected {url} to be of type str')
 
+def fix_broken_url(url: str) -> str:
+    new_url = url
+
+    for char in PROBLEM_CHARACTERS:
+        new_url = new_url.replace(f'\\{char}', char)
+
+    return new_url
+
 def fix_broken_urls(urls: List[str]) -> List[str]:
     return [
-        re.sub(r'(\\_)|(%5[cC]_)', '_', url)
+        fix_broken_url(url)
         for url in urls
     ]
 
