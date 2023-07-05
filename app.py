@@ -10,14 +10,33 @@ from string import Template
 from typing import Any, List, Union
 
 import praw
+import prawcore
 
 from dotenv import load_dotenv
 from urlextract import URLExtract
 
-PRAW_EXCEPTIONS = (
+PRAW_RETRY_EXCEPTIONS = (
     praw.reddit.ClientException,
     praw.reddit.RedditAPIException,
 )
+
+PRAW_SKIP_EXCEPTIONS = (
+    prawcore.exceptions.Forbidden,
+    prawcore.exceptions.ServerError,
+)
+
+PROBLEM_CHARACTERS = [
+    '_',
+    '*',
+    '~',
+
+    # Questionable?
+    # '%5C',
+    # '))',
+]
+
+FIRST_RESPONSE_WAIT = 120
+RETRY_RESPONSE_WAIT = 60
 
 OTHER_BOT_ACCOUNT = 'underscorebot'
 
@@ -32,16 +51,6 @@ I am a bot, beep boop.
 For more information on how I work, please visit my profile.
 """
 )
-
-PROBLEM_CHARACTERS = [
-    '_',
-    '*',
-    '~',
-
-    # Questionable?
-    # '%5C',
-    # '))',
-]
 
 class HealthcheckServer(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -97,10 +106,13 @@ def generate_message(urls: List[str]):
     })
 
 async def retry_reply_to_comment(comment, message: str):
-    await asyncio.sleep(600)
+    await asyncio.sleep(RETRY_RESPONSE_WAIT)
+
     try:
         comment.reply(message)
-    finally:
+    except PRAW_RETRY_EXCEPTIONS:
+        pass
+    except PRAW_SKIP_EXCEPTIONS:
         pass
 
 def true_reply_to_comment(comment, broken_urls: List[str]):
@@ -108,14 +120,15 @@ def true_reply_to_comment(comment, broken_urls: List[str]):
     message = generate_message(fixed_urls)
 
     print(comment, broken_urls)
+
     try:
         comment.reply(message)
-    except PRAW_EXCEPTIONS:
+    except PRAW_RETRY_EXCEPTIONS:
         threading.Thread(
             target=retry_reply_to_comment,
             args=(comment, message)
         ).start()
-    finally:
+    except PRAW_SKIP_EXCEPTIONS:
         pass
 
 def mock_reply_to_comment(comment, broken_urls: List[str]):
@@ -127,10 +140,10 @@ def reply_to_comment(comment, broken_urls: List[str]):
     else:
         mock_reply_to_comment(comment, broken_urls)
 
-def comment_listener(reddit: praw.Reddit):
+async def comment_listener(reddit: praw.Reddit):
     extractor = URLExtract()
-
     subreddit = reddit.subreddit('all')
+
     for comment in subreddit.stream.comments(skip_existing = True):
         filtered_body = filter_link_text_urls(comment.body)
 
@@ -146,21 +159,23 @@ def comment_listener(reddit: praw.Reddit):
 
         if urls:
             try:
+                await asyncio.sleep(FIRST_RESPONSE_WAIT)
                 comment.refresh()
-            except PRAW_EXCEPTIONS:
+            except PRAW_RETRY_EXCEPTIONS:
                 continue
 
             if should_reply_to_broken_url_comment(comment.replies):
                 reply_to_comment(comment, urls)
 
-def mention_listener(reddit: praw.Reddit):
+async def mention_listener(reddit: praw.Reddit):
     extractor = URLExtract()
 
     for mention in reddit.inbox.stream():
         parent_comment = mention.parent()
+
         try:
             parent_comment.refresh()
-        except PRAW_EXCEPTIONS:
+        except PRAW_RETRY_EXCEPTIONS:
             continue
 
         filtered_body = filter_link_text_urls(parent_comment.body)
