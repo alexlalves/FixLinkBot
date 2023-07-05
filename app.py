@@ -19,6 +19,8 @@ PRAW_EXCEPTIONS = (
     praw.reddit.RedditAPIException,
 )
 
+OTHER_BOT_ACCOUNT = 'underscorebot'
+
 MESSAGE_TEMPLATE = Template(
 """
 Hi, I noticed that some of your links might be broken for old reddit users.
@@ -80,9 +82,12 @@ def fix_broken_urls(urls: List[str]) -> List[str]:
         for url in urls
     ]
 
-def has_replied_to_broken_url_comment(replies):
-    return any(
-        comment.author == os.environ['USERNAME']
+def should_reply_to_broken_url_comment(replies):
+    return not any(
+        comment.author in (
+            os.environ['USERNAME'],
+            OTHER_BOT_ACCOUNT
+        )
         for comment in replies
     )
 
@@ -144,7 +149,8 @@ def comment_listener(reddit: praw.Reddit):
                 comment.refresh()
             except PRAW_EXCEPTIONS:
                 continue
-            if not has_replied_to_broken_url_comment(comment.replies):
+
+            if should_reply_to_broken_url_comment(comment.replies):
                 reply_to_comment(comment, urls)
 
 def mention_listener(reddit: praw.Reddit):
@@ -169,7 +175,7 @@ def mention_listener(reddit: praw.Reddit):
                 and is_broken_url(url)
         ]
 
-        if urls and not has_replied_to_broken_url_comment(parent_comment.replies):
+        if urls and should_reply_to_broken_url_comment(parent_comment.replies):
             reply_to_comment(parent_comment, urls)
 
         reddit.inbox.mark_read([mention])
